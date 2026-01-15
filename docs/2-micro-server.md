@@ -145,11 +145,81 @@ Configure the physical HIP Device to point to the Windows PC.
 3.  **Server Port:** `9090`.
 4.  **Mode:** LAN.
 
-## 4. Deployment (Service)
-Use **NSSM** to ensure the Python script runs automatically on boot.
+---
+
+## Phase 3: Enhanced Windows Service with System Tray Controller
+
+### 1. Overview
+This enhanced approach provides a native Windows service solution for the device server without requiring external tools. It includes both a background service and a system tray controller for easy management.
+
+*   **Components:** Windows Service + System Tray Controller
+*   **Benefits:** Native Windows integration, no external dependencies, user-friendly management
+*   **Architecture:** Service runs in background, controller provides GUI management
+
+### 2. Components
+
+#### Service Component (`device_server_srv.py`)
+*   Runs as a native Windows service
+*   Performs all the same device communication as the original script
+*   Operates independently of user login
+*   Listens on port 9090 for device connections
+*   Handles device handshake and data uploads to cloud database
+
+#### System Tray Controller (`device_server_controller.py`)
+*   Provides system tray icon with context menu
+*   Allows start/stop/restart service operations
+*   Displays current service status
+*   Provides user-friendly service management
+
+### 3. Installation Process
+
+1.  **Build Executables:**
+    ```cmd
+    build_executables.bat
+    ```
+    This creates `hip_device_service.exe` and `hip_device_controller.exe` in the `dist` folder.
+
+2.  **Install Service:**
+    ```cmd
+    install_device_service.bat
+    ```
+    *Must be run as Administrator* - installs and starts the Windows service.
+
+3.  **Run Controller:**
+    ```cmd
+    dist\hip_device_controller.exe
+    ```
+    Starts the system tray controller for service management.
+
+### 4. Management Options
+
+*   **Via System Tray:** Right-click the system tray icon to start/stop/restart the service
+*   **Via Command Line:** Use `net start HIPDeviceServer` or `net stop HIPDeviceServer`
+*   **Via Windows Services:** Open Services.msc and manage the "HIP Device Server Service"
+
+### 5. Uninstallation
+
+*   **Remove Service:** Run `uninstall_device_service.bat` as Administrator
+*   **Cleanup:** Manually delete the installation directory if desired
+
+### 6. Advantages Over Standalone Script Approach
+
+*   **Native Integration:** Uses Python's built-in Windows service capabilities
+*   **User Interface:** Provides system tray controller for easy management
+*   **No External Dependencies:** Doesn't require additional tools
+*   **Better Control:** More granular control over service lifecycle
+*   **Professional Distribution:** Can be packaged as standalone executables with PyInstaller
+
+## 4. Legacy Deployment (NSSM)
+Use **NSSM** to ensure the Python script runs automatically on boot. This is the older approach that requires external tools.
 
 1.  Open CMD as Administrator.
 2.  `nssm install HIPListener`
 3.  **Application Path:** `D:\hipupload\venv\Scripts\python.exe`
 4.  **Arguments:** `D:\hipupload\device_server.py`
 5.  **Start:** `nssm start HIPListener`
+
+---
+
+## 5. Modern Deployment (Enhanced Service)
+For the new enhanced approach without external dependencies, see Phase 3 above.

@@ -15,6 +15,12 @@ A hybrid cloud attendance system that bridges legacy biometric hardware (HIP/ZKT
 ### `device_server.py`
 A Python HTTP server that acts as a micro-service bridge, listening on port 9090 for data from HIP devices and directly inserting data into the cloud MySQL database.
 
+### `device_server_srv.py`
+A Windows service version of the device server functionality that can run in the background without a GUI.
+
+### `device_server_controller.py`
+A system tray application that provides a user-friendly interface to manage the device server Windows service.
+
 ### `device_sniffer.py`
 A debugging tool that captures and displays raw data from devices for troubleshooting and understanding data format.
 
@@ -54,8 +60,9 @@ Run directly as Python scripts for testing and development.
 For production use with user-friendly management:
 
 1. Build executables: `build_executables.bat`
-2. Install service: `install_suite.bat` (run as Administrator)
-3. Run controller: `dist\hip_sync_controller.exe`
+2. Install sync service: `install_suite.bat` (run as Administrator)
+3. Install device service: `install_device_service.bat` (run as Administrator)
+4. Run controllers: `dist\hip_sync_controller.exe` or `dist\hip_device_controller.exe`
 
 This approach provides:
 - Native Windows service integration
@@ -76,9 +83,10 @@ To create standalone executables using PyInstaller:
 ## Documentation
 
 Detailed implementation guides are available in the `docs/` directory:
-- Phase 1: Batch processing implementation
-- Phase 2: Real-time bridge implementation
-- Phase 3: Enhanced Windows service with system tray controller
+- Phase 1: Batch processing implementation (sync_to_cloud)
+- Phase 2: Real-time bridge implementation (device_server)
+- Phase 3: Enhanced Windows service with system tray controller (sync_to_cloud)
+- Phase 3: Enhanced Windows service with system tray controller (device_server)
 
 ## Contributing
 
