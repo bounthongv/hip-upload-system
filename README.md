@@ -8,18 +8,24 @@ A hybrid cloud attendance system that bridges legacy biometric hardware (HIP/ZKT
 - **Scheduled Sync**: Batch processing of local log files at configurable intervals
 - **Cloud Database Integration**: Direct insertion into MySQL databases
 - **Device Communication**: Handles device handshake and data formatting
-- **Flexible Deployment**: Can run as standalone scripts or Windows services
+- **Flexible Deployment**: Can run as standalone scripts, Windows services, or packaged executables
 
 ## Architecture Components
 
 ### `device_server.py`
 A Python HTTP server that acts as a micro-service bridge, listening on port 9090 for data from HIP devices and directly inserting data into the cloud MySQL database.
 
-### `device_snipper.py`
+### `device_sniffer.py`
 A debugging tool that captures and displays raw data from devices for troubleshooting and understanding data format.
 
 ### `sync_to_cloud.py`
 A scheduled sync service that processes local log files from HIP Premium Time software and uploads to cloud database.
+
+### `sync_to_cloud_srv.py`
+A Windows service version of the sync functionality that can run in the background without a GUI.
+
+### `sync_to_cloud_controller.py`
+A system tray application that provides a user-friendly interface to manage the Windows service.
 
 ### `test_cloud_db.py`
 A simple connectivity test script to verify connection to the cloud MySQL database.
@@ -27,7 +33,7 @@ A simple connectivity test script to verify connection to the cloud MySQL databa
 ## Prerequisites
 
 - Python 3.x
-- MySQL Connector for Python: `pip install mysql-connector-python`
+- Required packages: `pip install -r requirements.txt`
 
 ## Setup
 
@@ -37,11 +43,42 @@ A simple connectivity test script to verify connection to the cloud MySQL databa
 4. Run the desired component:
    - For real-time bridging: `python device_server.py`
    - For scheduled sync: `python sync_to_cloud.py`
-   - For debugging: `python device_snipper.py`
+   - For debugging: `python device_sniffer.py`
 
-## Deployment
+## Deployment Options
 
-The system can be deployed as Windows services using NSSM (Non-Sucking Service Manager) for automatic startup and crash recovery.
+### Option 1: Standalone Scripts
+Run directly as Python scripts for testing and development.
+
+### Option 2: Windows Service with System Tray Controller (Recommended)
+For production use with user-friendly management:
+
+1. Build executables: `build_executables.bat`
+2. Install service: `install_suite.bat` (run as Administrator)
+3. Run controller: `dist\hip_sync_controller.exe`
+
+This approach provides:
+- Native Windows service integration
+- System tray controller for easy management
+- No external dependencies like NSSM
+- Professional distribution as standalone executables
+
+### Option 3: Traditional Windows Service
+Using NSSM (Non-Sucking Service Manager) as described in the documentation.
+
+## Building Executables
+
+To create standalone executables using PyInstaller:
+1. Run `build_executables.bat`
+2. Find executables in the `dist` folder
+3. Distribute the executables without requiring Python installation
+
+## Documentation
+
+Detailed implementation guides are available in the `docs/` directory:
+- Phase 1: Batch processing implementation
+- Phase 2: Real-time bridge implementation
+- Phase 3: Enhanced Windows service with system tray controller
 
 ## Contributing
 
