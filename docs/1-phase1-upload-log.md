@@ -1,0 +1,86 @@
+### Part 2: Implementation Documentation
+
+# Hybrid Cloud Attendance System: Implementation Guide
+
+## 1. Architecture Overview
+This system integrates legacy biometric hardware with a modern cloud database. It utilizes the vendor's software to handle hardware communication and a background service to handle cloud data injection.
+
+*   **Hardware Layer:** HIP/ZKTeco Devices (LAN Mode).
+*   **Collection Layer:** HIP Premium Time (Windows).
+*   **Transport Layer:** Custom Bridge Service (Python).
+*   **Storage Layer:** Cloud MySQL Database.
+
+## 2. Cloud Database Preparation
+The local bridge service requires direct access to the cloud database port.
+
+1.  **Identify Database Host:**
+    *   Ensure you use the direct Database IP/Host (e.g., `mysql.us.cloudlogin.co`), not the website domain.
+2.  **Whitelist IP Address:**
+    *   Navigate to your Cloud Control Panel -> **Remote MySQL**.
+    *   Add Access Host: `0.0.0.0` (Recommended for dynamic office IPs) or your specific static IP.
+3.  **Verify User Permissions:**
+    *   Ensure the database user has `INSERT` and `SELECT` privileges.
+
+## 3. Log Collection Setup (HIP Premium Time)
+Configure the vendor software to output data to accessible text files.
+
+1.  Open **HIP Premium Time**.
+2.  Navigate to **Auto Download** (Toolbar Icon).
+3.  **Configuration:**
+    *   **Save Log:** `[Checked]` (Critical).
+    *   **Save Path:** `D:\Program Files (x86)\HIPPremiumTime-2.0.4\alog\`
+    *   **Schedule:** Select All Days and specific Times (e.g., 09:00, 13:00, 18:00).
+4.  **Action:** Click **Save Profile** then **Start**.
+5.  *Note: The HIP software must remain running on the PC (minimized).*
+
+## 4. Bridge Service Configuration
+The Bridge Service (`sync_service.py`) manages the upload process.
+
+### Configuration Parameters (In Script)
+Edit the top section of `sync_service.py` to match requirements:
+
+*   **`UPLOAD_TIMES`**: Define specific times for cloud synchronization.
+    *   *Example:* `["09:00", "12:00", "18:00"]`
+    *   *Behavior:* The script stays idle in the background and only activates at these times.
+*   **`IGNORE_FILES_BEFORE`**: Prevent re-uploading historical data.
+    *   *Example:* `"2026-01-01"`
+    *   *Behavior:* Any text log created before this date is moved to the archive folder without being uploaded to the cloud.
+
+## 5. Service Installation (NSSM)
+We use **NSSM (Non-Sucking Service Manager)** to run the Bridge script as a robust Windows Service. This ensures it starts automatically with Windows and restarts if it crashes.
+
+### Installation Steps
+1.  **Open Command Prompt as Administrator**.
+2.  Navigate to the script directory:
+    ```cmd
+    cd /d D:\hipupload
+    ```
+3.  **Initialize Service Installer:**
+    ```cmd
+    nssm install HIPCloudSync
+    ```
+4.  **Configure Service Details:**
+    *   **Application Path:** `D:\hipupload\venv\Scripts\python.exe`
+    *   **Startup Directory:** `D:\hipupload\`
+    *   **Arguments:** `sync_service.py`
+    *   **Service Name:** `HIPCloudSync`
+5.  **Configure Logging (Optional but Recommended):**
+    *   Go to **I/O** tab.
+    *   Output (stdout): `D:\hipupload\service.log`
+    *   Error (stderr): `D:\hipupload\error.log`
+6.  **Click:** `Install Service`.
+
+### Starting the Service
+```cmd
+nssm start HIPCloudSync
+```
+
+## 6. Maintenance & Troubleshooting
+
+*   **Check Status:** Open Windows Task Manager -> Services. Look for `HIPCloudSync`.
+*   **View Logs:** Open `D:\hipupload\service.log` to see upload status and record counts.
+*   **Modify Schedule:** Edit `sync_service.py`, then restart the service:
+    ```cmd
+    nssm restart HIPCloudSync
+    ```
+*   **Device Date Correction:** Ensure biometric devices are synced to the correct year (2025) via the HIP Software to prevent data filtering errors.
