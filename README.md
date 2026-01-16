@@ -1,40 +1,31 @@
 # HIP Upload System
 
-A hybrid cloud attendance system that bridges legacy biometric hardware (HIP/ZKTeco devices) with a modern cloud database. The system captures attendance data from biometric devices and uploads it to a remote MySQL database, supporting both scheduled batch processing and real-time data transfer.
+A hybrid cloud attendance system that bridges HIP biometric devices with a modern cloud database. The system reads directly from the MS Access database and uploads to a remote MySQL database, supporting scheduled data synchronization.
 
 ## Features
 
-- **Real-time Data Transfer**: Direct HTTP communication with biometric devices
-- **Scheduled Sync**: Batch processing of local log files at configurable intervals
+- **MS Access Integration**: Direct reading from HIP Premium Time MS Access database
 - **Cloud Database Integration**: Direct insertion into MySQL databases
-- **Device Communication**: Handles device handshake and data formatting
-- **Flexible Deployment**: Can run as standalone scripts, Windows services, or packaged executables
+- **Scheduled Sync**: Configurable times for data synchronization
+- **Secure Credentials**: Encrypted database credentials for security
+- **Robust Sync**: Per-batch sync tracking to prevent data loss
 
 ## Architecture Components
 
-### `device_server.py`
-A Python HTTP server that acts as a micro-service bridge, listening on port 9090 for data from HIP devices and directly inserting data into the cloud MySQL database.
+### `access_to_cloud.py`
+Main application that reads from MS Access database and syncs to cloud database. Runs continuously, checking for scheduled sync times.
 
-### `device_server_srv.py`
-A Windows service version of the device server functionality that can run in the background without a GUI.
+### `encrypt_credentials.py`
+Internal tool for encrypting database credentials (for authorized personnel only).
 
-### `device_server_controller.py`
-A system tray application that provides a user-friendly interface to manage the device server Windows service.
+### `config.json`
+Public configuration file containing user-modifiable settings (sync times, file paths, etc.)
 
-### `device_sniffer.py`
-A debugging tool that captures and displays raw data from devices for troubleshooting and understanding data format.
+### `encrypted_credentials.bin`
+Encrypted file containing sensitive database credentials (created by encrypt_credentials.py).
 
-### `sync_to_cloud.py`
-A scheduled sync service that processes local log files from HIP Premium Time software and uploads to cloud database.
-
-### `sync_to_cloud_srv.py`
-A Windows service version of the sync functionality that can run in the background without a GUI.
-
-### `sync_to_cloud_controller.py`
-A system tray application that provides a user-friendly interface to manage the Windows service.
-
-### `test_cloud_db.py`
-A simple connectivity test script to verify connection to the cloud MySQL database.
+### `create_access_table.sql`
+SQL script to create the required table in your cloud MySQL database.
 
 ## Prerequisites
 
@@ -67,48 +58,79 @@ To update credentials:
 
 1. Clone the repository
 2. Install dependencies: `pip install -r requirements.txt`
-3. Configure database credentials and paths in the respective scripts
-4. Run the desired component:
-   - For real-time bridging: `python device_server.py`
-   - For scheduled sync: `python sync_to_cloud.py`
-   - For debugging: `python device_sniffer.py`
+3. Create the required table in your cloud database using `create_access_table.sql`
+4. Configure `config.json` with your settings
+5. Generate `encrypted_credentials.bin` using the encryption script
+6. Run the application: `python access_to_cloud.py`
 
-## Deployment Options
+## Distribution Guide for Team
 
-### Option 1: Standalone Scripts
-Run directly as Python scripts for testing and development.
+### For Customer Deployment:
+1. **Compile the application** using PyInstaller:
+   ```cmd
+   pyinstaller --onefile --console access_to_cloud.py
+   ```
 
-### Option 2: Windows Service with System Tray Controller (Recommended)
-For production use with user-friendly management:
+2. **Prepare distribution files**:
+   - `dist/access_to_cloud.exe` (compiled application)
+   - `config.json` (with customer-specific settings)
+   - `encrypted_credentials.bin` (with customer's encrypted database credentials)
+   - `create_access_table.sql` (for database setup instructions)
 
-1. Build executables: `build_executables.bat`
-2. Install sync service: `install_suite.bat` (run as Administrator)
-3. Install device service: `install_device_service.bat` (run as Administrator)
-4. Run controllers: `dist\hip_sync_controller.exe` or `dist\hip_device_controller.exe`
+3. **Provide to customer**:
+   - Install the executable as a Windows service using NSSM
+   - Ensure the database table exists using the SQL script
+   - Verify the config.json has correct settings for their environment
 
-This approach provides:
-- Native Windows service integration
-- System tray controller for easy management
-- No external dependencies like NSSM
-- Professional distribution as standalone executables
+### For Internal Use (Updating Credentials):
+1. Create a `credentials.json` file with the format:
+   ```json
+   {
+     "DB_CONFIG": {
+       "user": "your_username",
+       "password": "your_password",
+       "host": "your_host",
+       "database": "your_database",
+       "port": 3306,
+       "raise_on_warnings": true,
+       "connection_timeout": 60
+     }
+   }
+   ```
+2. Run: `python encrypt_credentials.py`
+3. This creates `encrypted_credentials.bin` for distribution
 
-### Option 3: Traditional Windows Service
-Using NSSM (Non-Sucking Service Manager) as described in the documentation.
+## Configuration Options
 
-## Building Executables
+### `config.json` Settings:
+- `ACCESS_DB_PATH`: Path to the HIP MS Access database file
+- `ACCESS_PASSWORD`: Password for the MS Access database
+- `UPLOAD_TIMES`: Array of times when sync should occur (HH:MM format)
+- `BATCH_SIZE`: Number of records to process in each batch
+- `LAST_SYNC_FILE`: File to store last sync position
 
-To create standalone executables using PyInstaller:
-1. Run `build_executables.bat`
-2. Find executables in the `dist` folder
-3. Distribute the executables without requiring Python installation
+## Deployment with NSSM
 
-## Documentation
+To run as a Windows service:
+1. Download and install NSSM
+2. Run as Administrator:
+   ```
+   nssm install HIPAccessToCloud
+   ```
+3. In NSSM GUI:
+   - Path: Path to your compiled executable
+   - Startup directory: Directory containing config files
+4. Start the service:
+   ```
+   nssm start HIPAccessToCloud
+   ```
 
-Detailed implementation guides are available in the `docs/` directory:
-- Phase 1: Batch processing implementation (sync_to_cloud)
-- Phase 2: Real-time bridge implementation (device_server)
-- Phase 3: Enhanced Windows service with system tray controller (sync_to_cloud)
-- Phase 3: Enhanced Windows service with system tray controller (device_server)
+## Troubleshooting
+
+- Check that the MS Access database path is correct in config.json
+- Verify that the cloud database table exists using create_access_table.sql
+- Ensure encrypted_credentials.bin is in the same directory as the executable
+- Monitor logs for any connection or sync issues
 
 ## Contributing
 
