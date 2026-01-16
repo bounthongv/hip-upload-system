@@ -41,6 +41,27 @@ A simple connectivity test script to verify connection to the cloud MySQL databa
 - Python 3.x
 - Required packages: `pip install -r requirements.txt`
 
+## Security Implementation
+
+### Credential Protection
+This application implements credential encryption to protect sensitive database information:
+
+- **Public Configuration** (`config.json`): Contains user-modifiable settings like sync times and file paths
+- **Encrypted Credentials** (`encrypted_credentials.bin`): Contains sensitive database credentials in encrypted format
+- **Encryption Method**: Uses Fernet symmetric encryption from the cryptography library
+
+### Updating Credentials
+To update credentials:
+1. Modify your local `credentials.json` file with new database information
+2. Run the encryption script: `python encrypt_credentials.py`
+3. This generates `encrypted_credentials.bin` for distribution
+4. Replace the existing `encrypted_credentials.bin` in the application directory
+
+### Security Notes
+- The encryption key is embedded in the application binary during compilation
+- Only authorized personnel should have access to the encryption script
+- Regular users cannot access or modify the encrypted credentials
+
 ## Setup
 
 1. Clone the repository

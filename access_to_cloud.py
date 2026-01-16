@@ -5,10 +5,11 @@ import time
 import sys
 from datetime import datetime, timedelta
 import json
+from cryptography.fernet import Fernet
 
 # Configuration files
 CONFIG_FILE = "config.json"
-CREDENTIALS_FILE = "credentials.json"
+ENCRYPTED_CREDENTIALS_FILE = "encrypted_credentials.bin"
 
 def load_config():
     """Load public configuration from JSON file"""
@@ -21,7 +22,7 @@ def load_config():
             "ACCESS_DB_PATH": "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\db\\\\Pm2014.mdb",
             "ACCESS_PASSWORD": "hippmforyou",
             "UPLOAD_TIMES": ["09:00", "12:00", "17:00", "22:00"],  # Scheduled sync times
-            "LAST_SYNC_FILE": "last_sync_access.txt",  # File to store last sync timestamp + SN
+            "LAST_SYNC_FILE": "last_sync_access.txt",  # File to store last sync timestamp
             "BATCH_SIZE": 100  # Number of records to process in each batch
         }
         save_config(default_config)
@@ -37,17 +38,26 @@ def load_config():
             "BATCH_SIZE": 100
         }
 
-def load_credentials():
-    """Load private credentials from JSON file"""
+def load_encrypted_credentials():
+    """Load and decrypt credentials from encrypted file"""
     try:
-        with open(CREDENTIALS_FILE, 'r', encoding='utf-8') as f:
-            creds = json.load(f)
-            return creds.get("DB_CONFIG", {})
+        # In a real application, this key would be embedded in the executable
+        # For this example, we'll use a fixed key - in production, you'd have your own
+        ENCRYPTION_KEY = b'gAAAAABmNjQ4YzI1ZjE5ZjI0MjM4YzQ1NmI3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY='
+        
+        with open(ENCRYPTED_CREDENTIALS_FILE, 'rb') as f:
+            encrypted_data = f.read()
+        
+        fernet = Fernet(ENCRYPTION_KEY)
+        decrypted_data = fernet.decrypt(encrypted_data)
+        credentials = json.loads(decrypted_data.decode())
+        return credentials.get("DB_CONFIG", {})
     except FileNotFoundError:
-        print(f"Credentials file {CREDENTIALS_FILE} not found!")
+        print(f"Encrypted credentials file {ENCRYPTED_CREDENTIALS_FILE} not found!")
+        print("Please ensure encrypted_credentials.bin is in the application directory.")
         return {}
     except Exception as e:
-        print(f"Error loading credentials: {e}")
+        print(f"Error decrypting credentials: {e}")
         return {}
 
 def save_config(config):
@@ -80,7 +90,7 @@ def set_last_sync_position(timestamp, sn):
 
 # Load configuration and credentials
 config = load_config()
-credentials = load_credentials()
+credentials = load_encrypted_credentials()
 
 # Extract configuration values
 ACCESS_DB_PATH = config.get("ACCESS_DB_PATH", "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\db\\\\Pm2014.mdb")
