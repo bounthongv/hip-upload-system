@@ -148,3 +148,86 @@ This enhanced approach provides a native Windows service solution without requir
 *   **No External Dependencies:** Doesn't require NSSM installation
 *   **Better Control:** More granular control over service lifecycle
 *   **Professional Distribution:** Can be packaged as standalone executables with PyInstaller
+
+---
+
+## Phase 4: Direct MS Access Database Integration
+
+### 1. Overview
+This new approach eliminates the dependency on HIP Premium Time's auto-download feature by reading directly from the MS Access database. This provides more reliable and real-time data synchronization.
+
+*   **Source:** MS Access Database (Pm2014.mdb)
+*   **Target:** Cloud MySQL Database
+*   **Fields:** Preserves all original MS Access fields
+*   **Schedule:** Configurable sync intervals
+
+### 2. Database Schema
+
+#### New Table: `access_device_logs`
+This table preserves all original MS Access fields:
+
+*   `id`: Auto-increment primary key
+*   `badge_number`: Corresponds to Badgenumber from Access (employee ID)
+*   `check_time`: Corresponds to checktime from Access (datetime of check-in/out)
+*   `check_type`: Corresponds to checktype from Access (I=In, O=Out)
+*   `verify_code`: Corresponds to verifycode from Access (verification method)
+*   `sensor_id`: Corresponds to sensorid from Access (which sensor was used)
+*   `work_code`: Corresponds to workcode from Access (work code assignment)
+*   `device_sn`: Corresponds to sn from Access (device serial number)
+*   `raw_data`: Full raw record from Access for reference
+*   `server_time`: Timestamp when record was processed by server
+
+### 3. Implementation
+
+#### Database Connection
+*   **Source:** MS Access database at `D:\Program Files (x86)\HIPPremiumTime-2.0.4\db\Pm2014.mdb`
+*   **Password:** `hippmforyou`
+*   **Technology:** Python with pyodbc for Access connectivity
+
+#### Sync Process
+1. Connect to MS Access database
+2. Query `checkinout` table for new records since last sync
+3. Transform and map fields to MySQL schema
+4. Insert records into `access_device_logs` table
+5. Track last sync time to avoid duplicates
+
+### 4. Configuration
+
+#### New Configuration Options
+*   `ACCESS_DB_PATH`: Path to MS Access database
+*   `ACCESS_PASSWORD`: Password for database access
+*   `SYNC_INTERVAL`: How often to sync (in seconds)
+*   `LAST_SYNC_FILE`: File to store last sync timestamp
+
+### 5. Advantages Over HIP Premium Time Auto-Download
+
+*   **Direct Access:** No dependency on HIP Premium Time software
+*   **Real-time Sync:** More frequent and reliable data synchronization
+*   **Complete Data:** Preserves all original Access database fields
+*   **Reduced Complexity:** Eliminates intermediate file processing
+*   **Better Performance:** Direct database-to-database sync
+*   **Reliability:** No issues with file locks or processing delays
+
+### 6. Setup Instructions
+
+1.  **Create Database Table:**
+    Execute the SQL from `create_access_table.sql` on your cloud MySQL database
+
+2.  **Install Dependencies:**
+    ```cmd
+    pip install pyodbc
+    ```
+
+3.  **Configure Settings:**
+    Update `config.json` with MS Access database settings
+
+4.  **Run Sync Script:**
+    ```cmd
+    python access_to_cloud.py
+    ```
+
+### 7. Migration Strategy
+
+*   **Phase 1:** Run both systems in parallel to validate data integrity
+*   **Phase 2:** Switch to MS Access method as primary sync
+*   **Phase 3:** Decommission HIP Premium Time auto-download if desired

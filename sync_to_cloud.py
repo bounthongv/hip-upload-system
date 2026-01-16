@@ -27,7 +27,7 @@ DB_CONFIG = {
 
 # 3. SCHEDULER
 # List the times you want the upload to happen (24-hour format)
-UPLOAD_TIMES = ["09:00", "12:00", "17:00", "22:00"]
+UPLOAD_TIMES = ["09:00", "12:00", "16:40", "22:00"]
 
 # 4. FILTER OLD DATA
 # Files created before this date will be moved to processed WITHOUT uploading.

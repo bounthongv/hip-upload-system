@@ -29,6 +29,59 @@ wheels/
 .installed.cfg
 *.egg
 
+# Generated files
+*.spec
+*.pyc
+*.pyo
+*.pyd
+
+# Temp files
+*.tmp
+*.temp
+*.log
+
+# Sync tracking files
+last_sync*.txt
+
+# PyInstaller
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.spec
+dist/
+build/
+*.exe
+*.dll
+*.zip
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+service.log
+error.log
+
+# Environment specific files
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
 # IDE files
 .vscode/
 .idea/
