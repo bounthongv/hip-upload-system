@@ -68,16 +68,19 @@ To update credentials:
 ### For Customer Deployment:
 1. **Compile the application** using PyInstaller:
    ```cmd
-   pyinstaller --onefile --console access_to_cloud.py
+   pyinstaller --onefile --console --name=hip_access_sync access_to_cloud.py
    ```
+   This creates a single executable file that includes Python and all required libraries.
+   The executable will be located in the `dist/` folder as `hip_access_sync.exe`.
 
 2. **Prepare distribution files**:
-   - `dist/access_to_cloud.exe` (compiled application)
+   - `dist/hip_access_sync.exe` (compiled application - this is the only file needed)
    - `config.json` (with customer-specific settings)
    - `encrypted_credentials.bin` (with customer's encrypted database credentials)
    - `create_access_table.sql` (for database setup instructions)
 
 3. **Provide to customer**:
+   - The executable is completely self-contained - no Python installation needed
    - Install the executable as a Windows service using NSSM
    - Ensure the database table exists using the SQL script
    - Verify the config.json has correct settings for their environment
