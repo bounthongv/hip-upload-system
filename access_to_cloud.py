@@ -41,13 +41,12 @@ def load_config():
 def load_encrypted_credentials():
     """Load and decrypt credentials from encrypted file"""
     try:
-        # In a real application, this key would be embedded in the executable
-        # For this example, we'll use a fixed key - in production, you'd have your own
+        # Fixed encryption key - this must match the key used in encrypt_credentials.py
         ENCRYPTION_KEY = b'gAAAAABmNjQ4YzI1ZjE5ZjI0MjM4YzQ1NmI3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY='
-        
+
         with open(ENCRYPTED_CREDENTIALS_FILE, 'rb') as f:
             encrypted_data = f.read()
-        
+
         fernet = Fernet(ENCRYPTION_KEY)
         decrypted_data = fernet.decrypt(encrypted_data)
         credentials = json.loads(decrypted_data.decode())

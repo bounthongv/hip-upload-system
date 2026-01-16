@@ -58,9 +58,10 @@ To update credentials:
 4. Replace the existing `encrypted_credentials.bin` in the application directory
 
 ### Security Notes
-- The encryption key is embedded in the application binary during compilation
+- The same fixed encryption key is used in both the encryption script and the application
 - Only authorized personnel should have access to the encryption script
 - Regular users cannot access or modify the encrypted credentials
+- The encryption key is hardcoded in the application source (will be embedded when compiled)
 
 ## Setup
 
