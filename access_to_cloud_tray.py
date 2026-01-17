@@ -151,14 +151,20 @@ class SyncWorker(QThread):
     def connect_to_mysql_db(self):
         """Connect to the MySQL cloud database"""
         try:
+            # Load credentials dynamically
+            current_credentials = load_encrypted_credentials()
+
             conn = pymysql.connect(
-                host=self.credentials.get('host', 'localhost'),
-                user=self.credentials.get('user', ''),
-                password=self.credentials.get('password', ''),
-                database=self.credentials.get('database', ''),
-                port=self.credentials.get('port', 3306),
+                host=current_credentials.get('host', 'localhost'),
+                user=current_credentials.get('user', ''),
+                password=current_credentials.get('password', ''),
+                database=current_credentials.get('database', ''),
+                port=current_credentials.get('port', 3306),
                 charset='utf8mb4',
-                cursorclass=pymysql.cursors.DictCursor
+                cursorclass=pymysql.cursors.DictCursor,
+                connect_timeout=60,
+                read_timeout=60,
+                write_timeout=60
             )
             return conn
         except Exception as e:
