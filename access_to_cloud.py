@@ -1,6 +1,6 @@
 import os
 import pyodbc
-import mysql.connector
+import pymysql
 import time
 import sys
 from datetime import datetime, timedelta
@@ -119,7 +119,15 @@ def connect_to_access_db():
 def connect_to_mysql_db():
     """Connect to the MySQL cloud database"""
     try:
-        conn = mysql.connector.connect(**credentials)
+        conn = pymysql.connect(
+            host=credentials.get('host', 'localhost'),
+            user=credentials.get('user', ''),
+            password=credentials.get('password', ''),
+            database=credentials.get('database', ''),
+            port=credentials.get('port', 3306),
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor
+        )
         return conn
     except Exception as e:
         log_msg(f"Error connecting to MySQL database: {e}")
@@ -130,7 +138,7 @@ def check_table_exists():
     mysql_conn = connect_to_mysql_db()
     if not mysql_conn:
         return False
-    
+
     try:
         cursor = mysql_conn.cursor()
         cursor.execute("SELECT 1 FROM access_device_logs LIMIT 1")

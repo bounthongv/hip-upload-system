@@ -1,4 +1,4 @@
-mysql-connector-python
+PyMySQL
 pywin32
 pyodbc
 cryptography

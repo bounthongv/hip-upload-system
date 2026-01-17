@@ -1,7 +1,7 @@
 import os
 import glob
 import shutil
-import mysql.connector
+import pymysql
 import time
 import sys
 from datetime import datetime, timedelta
@@ -89,7 +89,15 @@ def sync_logs():
 
     conn = None
     try:
-        conn = mysql.connector.connect(**credentials)
+        conn = pymysql.connect(
+            host=credentials.get('host', 'localhost'),
+            user=credentials.get('user', ''),
+            password=credentials.get('password', ''),
+            database=credentials.get('database', ''),
+            port=credentials.get('port', 3306),
+            charset='utf8mb4',
+            cursorclass=pymysql.cursors.DictCursor
+        )
         cursor = conn.cursor()
 
         add_log = ("INSERT IGNORE INTO device_logs "
@@ -134,7 +142,7 @@ def sync_logs():
     except Exception as e:
         log_msg(f"Connection Error: {e}")
     finally:
-        if conn and conn.is_connected():
+        if conn:
             conn.close()
 
 if __name__ == "__main__":
