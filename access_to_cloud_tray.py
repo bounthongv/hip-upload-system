@@ -322,8 +322,16 @@ class SyncWorker(QThread):
             self.log_signal.emit(f"Error syncing to MySQL: {e}")
             return 0
         finally:
-            if mysql_conn and mysql_conn.is_connected():
-                mysql_conn.close()
+            try:
+                if 'cursor' in locals():
+                    cursor.close()
+            except:
+                pass
+            try:
+                if mysql_conn and mysql_conn.open:
+                    mysql_conn.close()
+            except:
+                pass
 
     def sync_from_access_to_cloud(self):
         """Main sync function with batching and per-batch sync position updates"""
