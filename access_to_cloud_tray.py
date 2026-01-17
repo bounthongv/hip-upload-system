@@ -186,7 +186,7 @@ class SyncWorker(QThread):
     def get_last_sync_position(self):
         """Get the last sync position (timestamp and SN) from file"""
         try:
-            with open(self.config.get("LAST_SYNC_FILE", "last_sync_access.txt"), 'r') as f:
+            with open(load_config().get("LAST_SYNC_FILE", "last_sync_access.txt"), 'r') as f:
                 content = f.read().strip()
                 if '|' in content:
                     timestamp_part, sn_part = content.rsplit('|', 1)
@@ -198,7 +198,7 @@ class SyncWorker(QThread):
 
     def set_last_sync_position(self, timestamp, sn):
         """Save the last sync position (timestamp and SN) to file"""
-        with open(self.config.get("LAST_SYNC_FILE", "last_sync_access.txt"), 'w') as f:
+        with open(load_config().get("LAST_SYNC_FILE", "last_sync_access.txt"), 'w') as f:
             f.write(f"{timestamp}|{sn}")
 
     def get_new_records_from_access(self, last_timestamp=None, last_sn=None, limit=None):
@@ -247,7 +247,7 @@ class SyncWorker(QThread):
                     records.append(row)
             else:
                 records = cursor.fetchall()
-            
+
             conn.close()
             return records
         except Exception as e:
