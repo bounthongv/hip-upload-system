@@ -368,7 +368,7 @@ class ConfigDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Configuration Editor")
-        self.setGeometry(300, 300, 500, 400)
+        self.setGeometry(300, 300, 500, 300)
 
         layout = QVBoxLayout()
 
@@ -376,27 +376,18 @@ class ConfigDialog(QDialog):
         form_group = QGroupBox("Sync Configuration")
         form_layout = QFormLayout()
 
+        # Load current config
+        config = load_config()
+
         # Access DB Path
         self.db_path_edit = QLineEdit()
-        config = load_config()
-        self.db_path_edit.setText(config.get("ACCESS_DB_PATH", ""))
+        self.db_path_edit.setText(config.get("ACCESS_DB_PATH", "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\db\\\\Pm2014.mdb"))
         form_layout.addRow("Access DB Path:", self.db_path_edit)
-
-        # Access Password
-        self.password_edit = QLineEdit()
-        self.password_edit.setEchoMode(QLineEdit.Password)
-        self.password_edit.setText(config.get("ACCESS_PASSWORD", ""))
-        form_layout.addRow("Access Password:", self.password_edit)
 
         # Upload Times
         self.times_edit = QLineEdit()
         self.times_edit.setText(", ".join(config.get("UPLOAD_TIMES", ["09:00", "12:00", "17:00", "22:00"])))
         form_layout.addRow("Upload Times (HH:MM, comma separated):", self.times_edit)
-
-        # Batch Size
-        self.batch_size_edit = QLineEdit()
-        self.batch_size_edit.setText(str(config.get("BATCH_SIZE", 100)))
-        form_layout.addRow("Batch Size:", self.batch_size_edit)
 
         form_group.setLayout(form_layout)
         layout.addWidget(form_group)
@@ -416,15 +407,6 @@ class ConfigDialog(QDialog):
     def save_config(self):
         """Save configuration from the dialog"""
         try:
-            # Validate batch size
-            batch_size_text = self.batch_size_edit.text()
-            if not batch_size_text.isdigit():
-                raise ValueError("Batch size must be a number")
-
-            batch_size = int(batch_size_text)
-            if batch_size <= 0:
-                raise ValueError("Batch size must be positive")
-
             # Parse upload times
             times_str = self.times_edit.text()
             if not times_str.strip():
@@ -443,13 +425,12 @@ class ConfigDialog(QDialog):
                 if h < 0 or h > 23 or m < 0 or m > 59:
                     raise ValueError(f"Invalid time: {time_str}. Hour must be 0-23, minute must be 0-59.")
 
-            config = {
-                "ACCESS_DB_PATH": self.db_path_edit.text(),
-                "ACCESS_PASSWORD": self.password_edit.text(),
-                "UPLOAD_TIMES": upload_times,
-                "LAST_SYNC_FILE": "last_sync_access.txt",
-                "BATCH_SIZE": batch_size
-            }
+            # Load existing config to preserve other fields
+            config = load_config()
+
+            # Update only the fields we're editing
+            config["ACCESS_DB_PATH"] = self.db_path_edit.text()
+            config["UPLOAD_TIMES"] = upload_times
 
             # Save to file
             save_config(config)
