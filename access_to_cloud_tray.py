@@ -485,23 +485,25 @@ class LogViewer(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Log Viewer")
         self.setGeometry(300, 300, 700, 500)
-        
+
         layout = QVBoxLayout()
-        
+
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
+
+        # Add some initial log content
+        self.log_text.append("Log Viewer - Recent Messages:")
+        self.log_text.append("Application started successfully")
+        self.log_text.append("Waiting for scheduled sync times...")
+
         layout.addWidget(self.log_text)
-        
-        self.close_btn = QPushButton("Close")
-        self.close_btn.clicked.connect(self.close)
-        layout.addWidget(self.close_btn)
-        
+
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.close)
+        layout.addWidget(close_btn)
+
         self.setLayout(layout)
-        
-        # Connect to worker's log signal
-        if hasattr(parent, 'worker'):
-            parent.worker.log_signal.connect(self.append_log)
-    
+
     def append_log(self, message):
         """Append message to log viewer"""
         self.log_text.append(message)
@@ -576,9 +578,12 @@ class SystemTrayApp:
         
         # Show the tray icon
         self.tray_icon.show()
-        
-        # Start the worker thread
+
+        # Start the worker thread (but in paused state initially)
         self.worker.start()
+
+        # Set initial status to reflect actual state
+        self.update_status("Stopped")
     
     def on_tray_icon_activated(self, reason):
         """Handle tray icon clicks"""
@@ -660,9 +665,18 @@ class SystemTrayApp:
     
     def exit_app(self):
         """Exit the application"""
-        self.worker.stop()
-        self.worker.wait()
-        self.tray_icon.hide()
+        # Stop the worker thread gracefully
+        if hasattr(self, 'worker'):
+            self.worker.stop()
+            # Wait for worker to finish with timeout
+            if self.worker.running:  # Use the actual running attribute
+                self.worker.wait(3000)  # Wait up to 3 seconds
+
+        # Hide the tray icon
+        if hasattr(self, 'tray_icon'):
+            self.tray_icon.hide()
+
+        # Quit the application
         self.app.quit()
     
     def run(self):
