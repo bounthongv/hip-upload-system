@@ -15,6 +15,9 @@ A hybrid cloud attendance system that bridges HIP biometric devices with a moder
 ### `access_to_cloud.py`
 Main application that reads from MS Access database and syncs to cloud database. Runs continuously, checking for scheduled sync times.
 
+### `sync_to_cloud.py`
+Legacy application that reads from HIP Premium Time log files and syncs to cloud database. Runs continuously, checking for scheduled sync times.
+
 ### `encrypt_credentials.py`
 Internal tool for encrypting database credentials (for authorized personnel only).
 

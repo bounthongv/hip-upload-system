@@ -5,34 +5,73 @@ import mysql.connector
 import time
 import sys
 from datetime import datetime, timedelta
+import json
+from cryptography.fernet import Fernet
 
-# ==========================================
-#        USER CONFIGURATION SECTION
-# ==========================================
+# Configuration files
+CONFIG_FILE = "config.json"
+ENCRYPTED_CREDENTIALS_FILE = "encrypted_credentials.bin"
 
-# 1. PATHS
-LOG_DIR = r"D:\Program Files (x86)\HIPPremiumTime-2.0.4\alog"
+def load_config():
+    """Load public configuration from JSON file"""
+    try:
+        with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Create default config if file doesn't exist
+        default_config = {
+            "LOG_DIR": "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\alog",
+            "UPLOAD_TIMES": ["09:00", "12:00", "17:00", "22:00"]
+        }
+        save_config(default_config)
+        return default_config
+    except Exception as e:
+        print(f"Error loading config: {e}")
+        # Return default config if there's an error
+        return {
+            "LOG_DIR": "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\alog",
+            "UPLOAD_TIMES": ["09:00", "12:00", "17:00", "22:00"]
+        }
+
+def load_encrypted_credentials():
+    """Load and decrypt credentials from encrypted file"""
+    try:
+        # Fixed encryption key - this must match the key used in encrypt_credentials.py
+        ENCRYPTION_KEY = b'XZgpn7Se8pQeHY8RMyeYf6e5Twq9PdOBVo9JPsqHZA4='
+        
+        with open(ENCRYPTED_CREDENTIALS_FILE, 'rb') as f:
+            encrypted_data = f.read()
+        
+        fernet = Fernet(ENCRYPTION_KEY)
+        decrypted_data = fernet.decrypt(encrypted_data)
+        credentials = json.loads(decrypted_data.decode())
+        return credentials.get("DB_CONFIG", {})
+    except FileNotFoundError:
+        print(f"Encrypted credentials file {ENCRYPTED_CREDENTIALS_FILE} not found!")
+        print("Please ensure encrypted_credentials.bin is in the application directory.")
+        return {}
+    except Exception as e:
+        print(f"Error decrypting credentials: {e}")
+        return {}
+
+def save_config(config):
+    """Save public configuration to JSON file"""
+    try:
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Error saving config: {e}")
+        return False
+
+# Load configuration and credentials
+config = load_config()
+credentials = load_encrypted_credentials()
+
+# Extract configuration values
+LOG_DIR = config.get("LOG_DIR", r"D:\Program Files (x86)\HIPPremiumTime-2.0.4\alog")
 PROCESSED_DIR = os.path.join(LOG_DIR, "processed")
-
-# 2. CLOUD DATABASE
-DB_CONFIG = {
-    'user': 'apis_misuzu2',
-    'password': 'Tw0NC35pu*',
-    'host': 'mysql.us.cloudlogin.co',
-    'database': 'apis_misuzu2',
-    'port': 3306,
-    'raise_on_warnings': True,
-    'connection_timeout': 60
-}
-
-# 3. SCHEDULER
-# List the times you want the upload to happen (24-hour format)
-UPLOAD_TIMES = ["09:00", "12:00", "16:40", "22:00"]
-
-# 4. FILTER OLD DATA
-# Files created before this date will be moved to processed WITHOUT uploading.
-# Format: YYYY-MM-DD. Set to None to upload everything.
-IGNORE_FILES_BEFORE = "2025-01-14"
+UPLOAD_TIMES = config.get("UPLOAD_TIMES", ["09:00", "12:00", "17:00", "22:00"])
 
 # ==========================================
 
@@ -43,19 +82,6 @@ def log_msg(message):
     print(f"[{datetime.now()}] {message}")
     sys.stdout.flush()
 
-def should_process_file(file_path):
-    if not IGNORE_FILES_BEFORE:
-        return True
-
-    cutoff = datetime.strptime(IGNORE_FILES_BEFORE, "%Y-%m-%d")
-    # Get file creation time
-    ctime = os.path.getctime(file_path)
-    file_date = datetime.fromtimestamp(ctime)
-
-    if file_date < cutoff:
-        return False
-    return True
-
 def sync_logs():
     files = glob.glob(os.path.join(LOG_DIR, "*.txt"))
     if not files:
@@ -63,7 +89,7 @@ def sync_logs():
 
     conn = None
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = mysql.connector.connect(**credentials)
         cursor = conn.cursor()
 
         add_log = ("INSERT IGNORE INTO device_logs "
@@ -72,14 +98,6 @@ def sync_logs():
 
         for file_path in files:
             filename = os.path.basename(file_path)
-
-            # CHECK: Should we ignore this old file?
-            if not should_process_file(file_path):
-                log_msg(f"Skipping old file: {filename}")
-                try:
-                    shutil.move(file_path, os.path.join(PROCESSED_DIR, filename))
-                except: pass
-                continue
 
             log_msg(f"Processing: {filename}")
 
@@ -120,9 +138,17 @@ def sync_logs():
             conn.close()
 
 if __name__ == "__main__":
-    log_msg(f"--- Service Started. Schedule: {UPLOAD_TIMES} ---")
+    log_msg("=== TXT File to Cloud Sync Service Started ===")
+    log_msg(f"Schedule: {UPLOAD_TIMES}")
+    
+    # Check if credentials are available
+    if not credentials:
+        log_msg("ERROR: Cannot connect to database - no credentials available!")
+        log_msg("Please ensure encrypted_credentials.bin is in the application directory.")
+        sys.exit(1)
 
-    # Track the last minute we ran to avoid double-running in the same minute
+    # For continuous operation with scheduled times (like original sync_to_cloud.py)
+    log_msg("--- Starting scheduled sync mode ---")
     last_run_minute = None
 
     while True:
