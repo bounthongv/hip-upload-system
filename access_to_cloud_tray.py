@@ -90,14 +90,7 @@ class SyncWorker(QThread):
         super().__init__()
         self.running = False
         self.paused = False
-        self.config = load_config()
         self.credentials = load_encrypted_credentials()
-        
-        # Extract configuration values
-        self.ACCESS_DB_PATH = self.config.get("ACCESS_DB_PATH", "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\db\\\\Pm2014.mdb")
-        self.ACCESS_PASSWORD = self.config.get("ACCESS_PASSWORD", "hippmforyou")
-        self.UPLOAD_TIMES = self.config.get("UPLOAD_TIMES", ["09:00", "12:00", "17:00", "22:00"])
-        self.BATCH_SIZE = self.config.get("BATCH_SIZE", 100)
     
     def run(self):
         self.running = True
@@ -138,11 +131,16 @@ class SyncWorker(QThread):
     def connect_to_access_db(self):
         """Connect to the MS Access database"""
         try:
+            # Load config dynamically
+            config = load_config()
+            db_path = config.get("ACCESS_DB_PATH", "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\db\\\\Pm2014.mdb")
+            password = config.get("ACCESS_PASSWORD", "hippmforyou")
+
             # Connection string for MS Access database with password
             conn_str = (
                 r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
-                f"DBQ={self.ACCESS_DB_PATH};"
-                f"PWD={self.ACCESS_PASSWORD}"
+                f"DBQ={db_path};"
+                f"PWD={password}"
             )
             conn = pyodbc.connect(conn_str)
             return conn
