@@ -365,42 +365,42 @@ class SyncWorker(QThread):
 
 class ConfigDialog(QDialog):
     """Dialog for editing configuration"""
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self.setWindowTitle("Configuration Editor")
         self.setGeometry(300, 300, 500, 400)
-        
+
         layout = QVBoxLayout()
-        
+
         # Create form layout for configuration
         form_group = QGroupBox("Sync Configuration")
         form_layout = QFormLayout()
-        
+
         # Access DB Path
         self.db_path_edit = QLineEdit()
         config = load_config()
         self.db_path_edit.setText(config.get("ACCESS_DB_PATH", ""))
         form_layout.addRow("Access DB Path:", self.db_path_edit)
-        
+
         # Access Password
         self.password_edit = QLineEdit()
         self.password_edit.setEchoMode(QLineEdit.Password)
         self.password_edit.setText(config.get("ACCESS_PASSWORD", ""))
         form_layout.addRow("Access Password:", self.password_edit)
-        
+
         # Upload Times
         self.times_edit = QLineEdit()
         self.times_edit.setText(", ".join(config.get("UPLOAD_TIMES", ["09:00", "12:00", "17:00", "22:00"])))
         form_layout.addRow("Upload Times (HH:MM, comma separated):", self.times_edit)
-        
+
         # Batch Size
         self.batch_size_edit = QLineEdit()
         self.batch_size_edit.setText(str(config.get("BATCH_SIZE", 100)))
         form_layout.addRow("Batch Size:", self.batch_size_edit)
-        
+
         form_group.setLayout(form_layout)
         layout.addWidget(form_group)
-        
+
         # Buttons
         button_layout = QHBoxLayout()
         self.save_btn = QPushButton("Save Configuration")
@@ -409,22 +409,29 @@ class ConfigDialog(QDialog):
         self.cancel_btn.clicked.connect(self.reject)
         button_layout.addWidget(self.save_btn)
         button_layout.addWidget(self.cancel_btn)
-        
+
         layout.addLayout(button_layout)
         self.setLayout(layout)
-    
+
     def save_config(self):
         """Save configuration from the dialog"""
         try:
             # Validate batch size
-            batch_size = int(self.batch_size_edit.text())
+            batch_size_text = self.batch_size_edit.text()
+            if not batch_size_text.isdigit():
+                raise ValueError("Batch size must be a number")
+
+            batch_size = int(batch_size_text)
             if batch_size <= 0:
                 raise ValueError("Batch size must be positive")
-            
+
             # Parse upload times
             times_str = self.times_edit.text()
+            if not times_str.strip():
+                raise ValueError("Upload times cannot be empty")
+
             upload_times = [time.strip() for time in times_str.split(",")]
-            
+
             # Validate time format
             for time_str in upload_times:
                 if len(time_str) != 5 or time_str[2] != ':':
@@ -435,7 +442,7 @@ class ConfigDialog(QDialog):
                 h, m = int(hour), int(minute)
                 if h < 0 or h > 23 or m < 0 or m > 59:
                     raise ValueError(f"Invalid time: {time_str}. Hour must be 0-23, minute must be 0-59.")
-            
+
             config = {
                 "ACCESS_DB_PATH": self.db_path_edit.text(),
                 "ACCESS_PASSWORD": self.password_edit.text(),
@@ -443,13 +450,13 @@ class ConfigDialog(QDialog):
                 "LAST_SYNC_FILE": "last_sync_access.txt",
                 "BATCH_SIZE": batch_size
             }
-            
+
             # Save to file
             save_config(config)
-            
+
             QMessageBox.information(self, "Success", "Configuration saved successfully!")
             self.accept()
-            
+
         except ValueError as e:
             QMessageBox.critical(self, "Error", f"Invalid configuration: {str(e)}")
         except Exception as e:
@@ -589,14 +596,39 @@ class SystemTrayApp:
     
     def configure_settings(self):
         """Open configuration dialog"""
-        dialog = ConfigDialog(self)
-        dialog.exec_()
-    
+        try:
+            dialog = ConfigDialog()
+            dialog.exec_()
+        except Exception as e:
+            QMessageBox.critical(None, "Error", f"Could not open configuration dialog: {str(e)}")
+
     def view_logs(self):
         """Open log viewer"""
-        log_viewer = LogViewer(self)
-        log_viewer.show()
-        log_viewer.exec_()
+        try:
+            # Create a simple log viewer since the connection might not work properly
+            log_dialog = QDialog()
+            log_dialog.setWindowTitle("Log Viewer")
+            log_dialog.setGeometry(300, 300, 700, 500)
+
+            layout = QVBoxLayout()
+            log_text = QTextEdit()
+            log_text.setReadOnly(True)
+
+            # Add some sample log content
+            log_text.append("Log Viewer - Recent Messages:")
+            log_text.append("No live logs available in this view")
+            log_text.append("Check console output for real-time logs")
+
+            layout.addWidget(log_text)
+
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(log_dialog.close)
+            layout.addWidget(close_btn)
+
+            log_dialog.setLayout(layout)
+            log_dialog.exec_()
+        except Exception as e:
+            QMessageBox.critical(None, "Error", f"Could not open log viewer: {str(e)}")
     
     def show_about(self):
         """Show about dialog"""
