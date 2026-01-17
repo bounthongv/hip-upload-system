@@ -337,22 +337,26 @@ class SyncWorker(QThread):
         # Get total count first
         all_records = self.get_new_records_from_access(last_timestamp, last_sn)
         total_records = len(all_records)
-        
+
         if total_records == 0:
             self.log_signal.emit("No new records found in Access database")
             return 0
 
-        self.log_signal.emit(f"Found {total_records} new records in Access database. Processing in batches of {self.BATCH_SIZE}...")
+        # Get current config for batch size
+        current_config = load_config()
+        current_batch_size = current_config.get("BATCH_SIZE", 100)
+
+        self.log_signal.emit(f"Found {total_records} new records in Access database. Processing in batches of {current_batch_size}...")
 
         # Process in batches
         total_uploaded = 0
-        for i in range(0, total_records, self.BATCH_SIZE):
-            batch = all_records[i:i + self.BATCH_SIZE]
+        for i in range(0, total_records, current_batch_size):
+            batch = all_records[i:i + current_batch_size]
             batch_uploaded = self.sync_records_to_cloud(batch)
             total_uploaded += batch_uploaded
-            
-            self.log_signal.emit(f"Processed batch {i//self.BATCH_SIZE + 1}: {batch_uploaded} records uploaded")
-            
+
+            self.log_signal.emit(f"Processed batch {i//current_batch_size + 1}: {batch_uploaded} records uploaded")
+
             # Update last sync position after each batch with the last record's position
             if batch:
                 last_record = batch[-1]  # Get the last record in this batch
@@ -360,7 +364,7 @@ class SyncWorker(QThread):
                 batch_last_sn = str(last_record[6]) if last_record[6] else 'UNKNOWN'  # sn is at index 6
                 self.set_last_sync_position(batch_last_timestamp, batch_last_sn)
                 self.log_signal.emit(f"Updated sync position to: {batch_last_timestamp}|{batch_last_sn}")
-            
+
             # Small delay between batches to avoid overwhelming the database
             time.sleep(0.1)
 
