@@ -102,14 +102,18 @@ class SyncWorker(QThread):
     def run(self):
         self.running = True
         last_run_minute = None
-        
+
         while self.running:
             if not self.paused:
+                # Reload config periodically to pick up changes
+                current_config = load_config()
+                current_upload_times = current_config.get("UPLOAD_TIMES", ["09:00", "12:00", "17:00", "22:00"])
+
                 now = datetime.now()
                 current_time = now.strftime("%H:%M")
 
                 # Check if current time matches schedule
-                if current_time in self.UPLOAD_TIMES:
+                if current_time in current_upload_times:
                     if current_time != last_run_minute:
                         self.status_signal.emit(f"Scheduled time reached ({current_time}). Starting sync...")
                         self.sync_from_access_to_cloud()
@@ -118,7 +122,7 @@ class SyncWorker(QThread):
                         self.log_signal.emit(f"DEBUG: Time {current_time} already processed in this minute, skipping")
                 else:
                     self.log_signal.emit(f"DEBUG: Current time {current_time} not in schedule, continuing...")
-            
+
             # Sleep for 30 seconds to spare CPU
             time.sleep(30)
     
