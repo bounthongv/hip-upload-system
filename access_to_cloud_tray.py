@@ -121,10 +121,10 @@ class SyncWorker(QThread):
     
     def stop(self):
         self.running = False
-    
+
     def pause(self):
         self.paused = True
-    
+
     def resume(self):
         self.paused = False
     
@@ -501,10 +501,16 @@ class SystemTrayApp:
         # Create tray icon
         self.tray_icon = QSystemTrayIcon()
         
-        # Create a simple icon (in a real app, you'd use a proper icon file)
-        pixmap = QPixmap(32, 32)
-        pixmap.fill()
-        icon = QIcon(pixmap)
+        # Use custom icon file if available
+        import os
+        icon_path = "upload.ico"
+        if os.path.exists(icon_path):
+            icon = QIcon(icon_path)
+        else:
+            # Fallback to a simple icon if upload.ico doesn't exist
+            pixmap = QPixmap(32, 32)
+            pixmap.fill()
+            icon = QIcon(pixmap)
         self.tray_icon.setIcon(icon)
         
         # Create menu
