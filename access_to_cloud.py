@@ -42,7 +42,7 @@ def load_encrypted_credentials():
     """Load and decrypt credentials from encrypted file"""
     try:
         # Fixed encryption key - this must match the key used in encrypt_credentials.py
-        ENCRYPTION_KEY = b'gAAAAABmNjQ4YzI1ZjE5ZjI0MjM4YzQ1NmI3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY='
+        ENCRYPTION_KEY = b'XZgpn7Se8pQeHY8RMyeYf6e5Twq9PdOBVo9JPsqHZA4='
 
         with open(ENCRYPTED_CREDENTIALS_FILE, 'rb') as f:
             encrypted_data = f.read()

@@ -11,10 +11,9 @@ def main():
     print("HIP System - Credential Encryption Tool")
     print("=====================================")
     
-    # Fixed key that will be used in the application
+    # Fixed key that will be used consistently
     # This same key must be hardcoded in access_to_cloud.py
-    FIXED_KEY = b'gAAAAABmNjQ4YzI1ZjE5ZjI0MjM4YzQ1NmI3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY3ODlhYmMxMjM0NTY='
-    
+    FIXED_KEY = b'XZgpn7Se8pQeHY8RMyeYf6e5Twq9PdOBVo9JPsqHZA4='
     print(f"Using fixed encryption key: {FIXED_KEY.decode()[:20]}...")
     
     # Load credentials from credentials.json
@@ -50,10 +49,11 @@ def main():
     with open('encrypted_credentials.bin', 'wb') as f:
         f.write(encrypted_data)
     
-    print(f"Encryption completed!")
+    print(f"\nEncryption completed!")
     print(f"- Encrypted credentials saved to: encrypted_credentials.bin")
-    print(f"- Use the same fixed key in access_to_cloud.py")
+    print(f"- Uses fixed key that is also in access_to_cloud.py")
     print(f"- DO NOT distribute credentials.json with the application")
+    print(f"- Only distribute encrypted_credentials.bin with the application")
 
 if __name__ == "__main__":
     # Check if cryptography is installed
