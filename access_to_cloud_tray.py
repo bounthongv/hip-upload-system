@@ -97,6 +97,7 @@ class SyncWorker(QThread):
         last_run_minute = None
 
         while self.running:
+            # Check if paused at the beginning of the loop
             if not self.paused:
                 # Reload config periodically to pick up changes
                 current_config = load_config()
@@ -115,9 +116,16 @@ class SyncWorker(QThread):
                         self.log_signal.emit(f"DEBUG: Time {current_time} already processed in this minute, skipping")
                 else:
                     self.log_signal.emit(f"DEBUG: Current time {current_time} not in schedule, continuing...")
+            else:
+                # When paused, just sleep briefly and continue checking if still running
+                time.sleep(1)
+                continue
 
-            # Sleep for 30 seconds to spare CPU
-            time.sleep(30)
+            # Sleep for 30 seconds to spare CPU (only when not paused)
+            if not self.paused:
+                time.sleep(30)
+            else:
+                time.sleep(1)  # Check more frequently when paused
     
     def stop(self):
         self.running = False
@@ -363,6 +371,11 @@ class SyncWorker(QThread):
         # Process in batches
         total_uploaded = 0
         for i in range(0, total_records, current_batch_size):
+            # Check if we should stop/pause during processing
+            if self.paused or not self.running:
+                self.log_signal.emit("Sync interrupted due to pause or stop command.")
+                break
+
             batch = all_records[i:i + current_batch_size]
             batch_uploaded = self.sync_records_to_cloud(batch)
             total_uploaded += batch_uploaded
@@ -378,7 +391,10 @@ class SyncWorker(QThread):
                 self.log_signal.emit(f"Updated sync position to: {batch_last_timestamp}|{batch_last_sn}")
 
             # Small delay between batches to avoid overwhelming the database
-            time.sleep(0.1)
+            # Check pause status during the delay
+            start_time = time.time()
+            while time.time() - start_time < 0.1 and not self.paused and self.running:
+                time.sleep(0.01)  # Small sleep to allow checking pause status
 
         self.log_signal.emit(f"Sync completed. Total uploaded: {total_uploaded} records.")
         return total_uploaded
