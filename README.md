@@ -44,6 +44,29 @@ This application implements credential encryption to protect sensitive database 
 - **Encrypted Credentials** (`encrypted_credentials.bin`): Contains sensitive database credentials in encrypted format
 - **Encryption Method**: Uses Fernet symmetric encryption from the cryptography library
 
+## Database Connection
+
+### MySQL Compatibility
+- **Library**: PyMySQL (PyInstaller-friendly replacement for mysql-connector-python)
+- **Features**: Supports all standard MySQL operations
+- **Compatibility**: Works seamlessly with PyInstaller compilation
+- **Authentication**: Uses standard MySQL authentication methods
+
+## Executable Distribution
+
+### PyInstaller Compilation
+The applications can be compiled to standalone executables using PyInstaller:
+```cmd
+pyinstaller --onefile --console --name=hip_access_sync access_to_cloud.py
+```
+
+The compiled executables:
+- Are completely self-contained (no Python installation needed)
+- Include all required libraries and dependencies
+- Work with encrypted credentials system
+- Run continuously with scheduled sync times
+- Compatible with Windows Services (NSSM)
+
 ### Updating Credentials
 To update credentials:
 1. Modify your local `credentials.json` file with new database information
