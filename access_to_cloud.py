@@ -312,12 +312,17 @@ if __name__ == "__main__":
     log_msg(f"Access DB: {ACCESS_DB_PATH}")
     log_msg(f"Schedule: {UPLOAD_TIMES}")  # Show the scheduled times like the original
     log_msg(f"Batch size: {BATCH_SIZE} records")
-    
+
+    # Check if credentials are loaded
+    log_msg(f"Credential status: {'LOADED' if credentials else 'FAILED TO LOAD'}")
+
     # Check if target table exists before proceeding
     if not check_table_exists():
         log_msg("WARNING: access_device_logs table does not exist in MySQL database!")
         log_msg("Please create the table using create_access_table.sql before running sync.")
         sys.exit(1)
+    else:
+        log_msg("INFO: Target table exists in MySQL database")
 
     try:
         # For continuous operation with scheduled times (like original sync_to_cloud.py)
@@ -328,12 +333,19 @@ if __name__ == "__main__":
             now = datetime.now()
             current_time = now.strftime("%H:%M")
 
+            # Log current time for debugging
+            log_msg(f"DEBUG: Current time is {current_time}, checking against schedule: {UPLOAD_TIMES}")
+
             # Check if current time matches schedule
             if current_time in UPLOAD_TIMES:
                 if current_time != last_run_minute:
                     log_msg(f"Scheduled time reached ({current_time}). Starting sync...")
                     sync_from_access_to_cloud()
                     last_run_minute = current_time
+                else:
+                    log_msg(f"DEBUG: Time {current_time} already processed in this minute, skipping")
+            else:
+                log_msg(f"DEBUG: Current time {current_time} not in schedule, continuing...")
 
             # Sleep for 30 seconds to spare CPU
             time.sleep(30)
