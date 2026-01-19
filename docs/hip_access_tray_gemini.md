@@ -1,6 +1,7 @@
 # HIP Access Tray Refactoring Strategy (Gemini Update)
 
 **Date:** January 17, 2026
+**Updated:** January 19, 2026 (Pure Python Strategy)
 
 ## Overview
 This document outlines the refactoring strategy implemented to improve the maintainability, visibility, and architecture of the HIP Access to Cloud Sync system tray application. The primary goal was to decouple the synchronization logic from the GUI code and provide real-time feedback (logging) to the user, while preserving the existing security mechanisms and legacy file structures as requested.
@@ -27,14 +28,50 @@ This is a modern PyQt5 application that utilizes the manager. Key features inclu
 *   **Thread Safety:** Uses `QThread` and signals to ensure the UI remains responsive during long sync operations.
 *   **Native Feel:** Operates seamlessly in the Windows System Tray with custom icons and menus.
 
+## Phase 2: Pure Python Strategy (Driverless Access)
+
+To resolve persistent issues with ODBC Driver compatibility (specifically the "Not a valid password" error on legacy `.mdb` files and 32-bit vs 64-bit architecture mismatches on client machines), a second implementation strategy was developed.
+
+### Motivation
+*   **Driver Dependencies:** The standard `pyodbc` approach requires the *Microsoft Access Database Engine* to be installed on the target machine. This is difficult to bundle and prone to version conflicts (Office 32-bit vs App 64-bit).
+*   **Legacy Formats:** The Access 2000 `.mdb` format often triggers false-positive password errors with newer ODBC drivers.
+
+### The Solution: `access-parser`
+We implemented a "Pure Python" version that bypasses the Windows ODBC subsystem entirely.
+
+*   **Library:** Uses `access-parser` (and `construct`) to read the raw binary structure of the `.mdb` file directly.
+*   **Architecture Independent:** Works identically on 32-bit and 64-bit Windows without external dependencies.
+*   **Zero-Install:** No need to install Access Database Engines or drivers on the client's computer.
+
+### New Pure Components
+1.  **`access_sync_manager_pure.py`**: A variant of the logic manager that replaces `pyodbc` queries with `access-parser` table scanning.
+    *   *Logic:* Instead of SQL `WHERE` clauses, it reads the full table (efficient enough for typical attendance logs < 100k records) and filters for new records in memory using Python.
+    *   *Resilience:* Includes logic to case-insensitively match table names (`CHECKINOUT` vs `CheckInOut`) to handle database variations.
+2.  **`hip_access_tray_pure.py`**: The GUI wrapper for the pure manager.
+3.  **`access_to_cloud_pure.py`**: The console/service version of the pure manager.
+
 ## Security & Compatibility
 *   **Preserved Keys:** As explicitly requested, the encryption key remains hardcoded in the `AccessSyncManager` class to ensure compatibility with existing encrypted credential files.
 *   **Non-Destructive:** The original files (`access_to_cloud.py` and `access_to_cloud_tray.py`) were left untouched to ensure a safe rollback path if needed.
 
 ## Build Process
-A new PyInstaller specification (`hip_access_tray.spec`) was created to build a clean, windowless executable.
 
-**To Build:**
+### Pure Python Version (Recommended)
+This version does not require any drivers on the target machine.
+
+**Command:**
+```powershell
+pyinstaller --onefile --windowed --name=hip_access_tray_pure hip_access_tray_pure.py
+```
+*(Note: Ensure `access-parser` is installed in the build environment).*
+
+**Artifact:**
+*   `dist\hip_access_tray_pure.exe`
+
+### Standard ODBC Version
+Use this if direct SQL query performance is critical and drivers are guaranteed.
+
+**Command:**
 ```powershell
 pyinstaller hip_access_tray.spec
 ```

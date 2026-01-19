@@ -114,6 +114,20 @@ def connect_to_access_db():
         return conn
     except Exception as e:
         log_msg(f"Error connecting to Access database: {e}")
+        
+        # Diagnostics: List available drivers
+        try:
+            drivers = [d for d in pyodbc.drivers() if 'Access' in d]
+            log_msg(f"Available Access-related ODBC Drivers: {drivers}")
+            
+            # Fallback: Try legacy driver if available and primary failed
+            if "Microsoft Access Driver (*.mdb)" in drivers and "Microsoft Access Driver (*.mdb, *.accdb)" not in str(e):
+                log_msg("Attempting fallback to legacy driver...")
+                conn_str_legacy = f"DRIVER={{Microsoft Access Driver (*.mdb)}};DBQ={ACCESS_DB_PATH};PWD={ACCESS_PASSWORD}"
+                return pyodbc.connect(conn_str_legacy)
+        except Exception as debug_e:
+            log_msg(f"Could not list drivers: {debug_e}")
+            
         return None
 
 def connect_to_mysql_db():

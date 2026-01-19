@@ -121,6 +121,22 @@ class AccessSyncManager:
             return conn
         except Exception as e:
             self.log(f"Error connecting to Access database: {e}")
+            
+            # Diagnostics: List available drivers
+            try:
+                drivers = [d for d in pyodbc.drivers() if 'Access' in d]
+                self.log(f"Available Access-related ODBC Drivers: {drivers}")
+                
+                # Fallback: Try legacy driver if available
+                # Note: The check logic below is simplified compared to the standalone script 
+                # to just try the fallback if the primary failed and the driver exists.
+                if any("Microsoft Access Driver (*.mdb)" in d for d in drivers):
+                    self.log("Attempting fallback to legacy driver...")
+                    conn_str_legacy = f"DRIVER={{Microsoft Access Driver (*.mdb)}};DBQ={db_path};PWD={password}"
+                    return pyodbc.connect(conn_str_legacy)
+            except Exception as debug_e:
+                self.log(f"Fallback/Debug failed: {debug_e}")
+                
             return None
 
     def connect_to_mysql_db(self):

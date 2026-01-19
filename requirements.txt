@@ -2,3 +2,4 @@ PyMySQL
 pywin32
 pyodbc
 cryptography
+access-parser
