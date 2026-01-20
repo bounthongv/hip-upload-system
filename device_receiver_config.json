@@ -1,0 +1,9 @@
+{
+    "SERVER_HOST": "0.0.0.0",
+    "SERVER_PORT": 9090,
+    "DEVICE_SN": "HIP_CMI_F68S",
+    "SYNC_TO_CLOUD": true,
+    "SYNC_INTERVAL_SECONDS": 60,
+    "LOG_RAW_DATA": true,
+    "DEBUG_MODE": true
+}

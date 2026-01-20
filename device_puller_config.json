@@ -1,0 +1,15 @@
+{
+  "DEVICES": [
+    {
+      "name": "HIP CMI F68S Main",
+      "ip": "192.168.100.166",
+      "port": 5005,
+      "password": 0,
+      "enabled": true
+    }
+  ],
+  "SYNC_TO_CLOUD": true,
+  "PULL_INTERVAL_MINUTES": 15,
+  "CONNECTION_TIMEOUT": 10,
+  "DEBUG_MODE": true
+}

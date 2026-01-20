@@ -1,0 +1,6 @@
+{
+    "ACCESS_DB_PATH": "D:\\hipupload\\HIPPremiumTime-2.0.4\\db\\Pm2014.mdb",
+    "UPLOAD_TIMES": ["09:00", "12:00", "17:00", "22:00"],
+    "BATCH_SIZE": 100,
+    "SYNC_INTERVAL_SECONDS": 60
+}
