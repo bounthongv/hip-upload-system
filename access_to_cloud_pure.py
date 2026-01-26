@@ -6,6 +6,14 @@ from datetime import datetime
 import json
 from cryptography.fernet import Fernet
 
+# Platform-specific file locking
+try:
+    import fcntl  # Unix/Linux/macOS
+    USE_FCNTL = True
+except ImportError:
+    import msvcrt  # Windows
+    USE_FCNTL = False
+
 # Try to import access_parser
 try:
     from access_parser import AccessParser
@@ -91,9 +99,61 @@ ACCESS_DB_PATH = config.get("ACCESS_DB_PATH", "D:\\Program Files (x86)\\HIPPremi
 UPLOAD_TIMES = config.get("UPLOAD_TIMES", ["09:00", "12:00", "17:00", "22:00"])
 BATCH_SIZE = config.get("BATCH_SIZE", 100)
 
+# Lock file for preventing multiple instances
+LOCK_FILE = "access_to_cloud_pure.lock"
+lock_file_handle = None
+
 def log_msg(message):
     print(f"[{datetime.now()}] {message}")
     sys.stdout.flush()
+
+def acquire_lock():
+    """Acquire an exclusive lock to prevent multiple instances from running"""
+    global lock_file_handle
+    try:
+        # Open the lock file (create if it doesn't exist)
+        lock_file_handle = open(LOCK_FILE, 'w')
+
+        if USE_FCNTL:
+            # Unix/Linux/macOS - use fcntl
+            fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        else:
+            # Windows - use msvcrt
+            msvcrt.locking(lock_file_handle.fileno(), msvcrt.LK_NBLCK, 1)  # Lock 1 byte
+
+        # Write the current process ID to the lock file
+        lock_file_handle.write(str(os.getpid()))
+        lock_file_handle.flush()
+        return True
+    except (IOError, OSError):
+        # Could not acquire lock, another instance is running
+        if lock_file_handle:
+            lock_file_handle.close()
+            lock_file_handle = None
+        return False
+
+def release_lock():
+    """Release the lock"""
+    global lock_file_handle
+    if lock_file_handle:
+        try:
+            if USE_FCNTL:
+                # Unix/Linux/macOS - use fcntl
+                fcntl.flock(lock_file_handle.fileno(), fcntl.LOCK_UN)
+            else:
+                # Windows - use msvcrt (seek to beginning and unlock 1 byte)
+                lock_file_handle.seek(0)
+                msvcrt.locking(lock_file_handle.fileno(), msvcrt.LK_UNLCK, 1)
+
+            lock_file_handle.close()
+            lock_file_handle = None
+            # Remove the lock file
+            try:
+                os.remove(LOCK_FILE)
+            except:
+                pass  # Ignore errors when removing lock file
+        except:
+            pass  # Ignore errors when releasing lock
 
 def connect_to_mysql_db():
     """Connect to the MySQL cloud database"""
@@ -127,6 +187,58 @@ def check_table_exists():
     except:
         mysql_conn.close()
         return False
+
+def ensure_unique_constraint():
+    """Ensure the unique constraint exists on the table to prevent duplicates"""
+    mysql_conn = connect_to_mysql_db()
+    if not mysql_conn:
+        return False
+
+    try:
+        cursor = mysql_conn.cursor()
+
+        # Check if the unique constraint already exists
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM information_schema.TABLE_CONSTRAINTS
+            WHERE TABLE_SCHEMA = %s
+            AND TABLE_NAME = 'access_device_logs'
+            AND CONSTRAINT_NAME = 'unique_badge_time_sn'
+        """, (credentials.get('database', ''),))
+
+        result = cursor.fetchone()
+        constraint_exists = result['COUNT(*)'] > 0 if result else False
+
+        if not constraint_exists:
+            # First, remove any existing duplicates
+            log_msg("Removing existing duplicates before adding unique constraint...")
+            cursor.execute("""
+                DELETE t1 FROM access_device_logs t1
+                INNER JOIN access_device_logs t2
+                WHERE t1.id > t2.id
+                AND t1.badge_number = t2.badge_number
+                AND t1.check_time = t2.check_time
+                AND t1.device_sn = t2.device_sn
+            """)
+
+            # Then add the unique constraint
+            cursor.execute("""
+                ALTER TABLE access_device_logs
+                ADD CONSTRAINT unique_badge_time_sn UNIQUE (badge_number, check_time, device_sn)
+            """)
+            log_msg("Unique constraint added successfully.")
+        else:
+            log_msg("Unique constraint already exists.")
+
+        mysql_conn.commit()
+        return True
+    except Exception as e:
+        log_msg(f"Error ensuring unique constraint: {e}")
+        # If constraint creation fails, we can still continue with the ON DUPLICATE KEY UPDATE approach
+        return True  # Return True to allow the sync to continue
+    finally:
+        if mysql_conn and mysql_conn.is_connected():
+            mysql_conn.close()
 
 def parse_access_records_pure(last_timestamp=None, last_sn=None):
     """
@@ -239,6 +351,9 @@ def sync_records_to_cloud(access_records):
         log_msg("ERROR: access_device_logs table does not exist in MySQL database!")
         return 0
 
+    # Ensure the unique constraint exists to prevent duplicates
+    ensure_unique_constraint()
+
     mysql_conn = connect_to_mysql_db()
     if not mysql_conn:
         return 0
@@ -247,9 +362,16 @@ def sync_records_to_cloud(access_records):
         cursor = mysql_conn.cursor()
 
         insert_query = """
-        INSERT IGNORE INTO access_device_logs
+        INSERT INTO access_device_logs
         (badge_number, check_time, check_type, verify_code, sensor_id, work_code, device_sn, raw_data)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            check_type = VALUES(check_type),
+            verify_code = VALUES(verify_code),
+            sensor_id = VALUES(sensor_id),
+            work_code = VALUES(work_code),
+            raw_data = VALUES(raw_data),
+            server_time = VALUES(server_time)
         """
 
         count = 0
@@ -334,6 +456,13 @@ if __name__ == "__main__":
     log_msg(f"Access DB: {ACCESS_DB_PATH}")
     log_msg("Note: This mode bypasses ODBC drivers.")
 
+    # Try to acquire lock to prevent multiple instances
+    if not acquire_lock():
+        log_msg("Another instance is already running. Exiting...")
+        sys.exit(1)
+
+    log_msg("Lock acquired. Proceeding with sync service...")
+
     # Main loop
     try:
         log_msg("--- Starting scheduled sync mode ---")
@@ -348,10 +477,14 @@ if __name__ == "__main__":
                     log_msg(f"Scheduled time reached ({current_time}). Starting sync...")
                     sync_from_access_to_cloud()
                     last_run_minute = current_time
-            
+
             time.sleep(30)
 
     except KeyboardInterrupt:
         log_msg("Sync service interrupted by user")
     except Exception as e:
         log_msg(f"Error in sync service: {e}")
+    finally:
+        # Always release the lock when exiting
+        release_lock()
+        log_msg("Lock released.")
