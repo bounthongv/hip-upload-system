@@ -111,8 +111,29 @@ Both `access_to_cloud.py` and `access_to_cloud_pure.py` were using `INSERT IGNOR
 
 #### 4. SQL Scripts Provided
 Two SQL scripts were created to assist with manual database maintenance:
-- `remove_duplicates.sql` - Removes existing duplicate records
-- `add_unique_constraint.sql` - Adds the unique constraint to prevent future duplicates
+
+**Remove Duplicates SQL Command:**
+```sql
+DELETE t1 FROM access_device_logs t1
+INNER JOIN access_device_logs t2
+WHERE t1.id > t2.id
+AND t1.badge_number = t2.badge_number
+AND t1.check_time = t2.check_time
+AND t1.device_sn = t2.device_sn;
+```
+
+This command removes existing duplicate records by keeping only the record with the lowest ID for each group of duplicates.
+
+**Add Unique Constraint SQL Command:**
+```sql
+ALTER TABLE access_device_logs
+ADD CONSTRAINT unique_badge_time_sn UNIQUE (badge_number, check_time, device_sn);
+```
+
+This command adds a unique constraint on the combination of badge number, check time, and device serial number to prevent future duplicate entries.
+
+- `remove_duplicates.sql` - Contains the DELETE command to remove existing duplicates
+- `add_unique_constraint.sql` - Contains the ALTER TABLE command to add the unique constraint
 
 ### Impact
 - Significantly reduces database size by eliminating redundant entries
