@@ -1,66 +1,161 @@
 # HIP Upload System - Project Overview
 
 ## Project Purpose
-This is a hybrid cloud attendance system that bridges legacy biometric hardware (HIP/ZKTeco devices) with a modern cloud database. The system captures attendance data from biometric devices and uploads it to a remote MySQL database, supporting both scheduled batch processing and real-time data transfer.
+This is a hybrid cloud attendance system that bridges legacy biometric hardware (HIP/ZKTeco devices) and HIP Premium Time software with a modern cloud database. The system supports multiple integration approaches including direct MS Access database reading, file-based log synchronization, and real-time HTTP bridging from biometric devices to a remote MySQL database.
 
 ## Architecture Components
 
-### 1. `device_server.py`
-- A Python HTTP server that acts as a micro-service bridge
+### 1. `access_to_cloud.py`
+- Main application that reads directly from HIP Premium Time's MS Access database
+- Connects to Pm2014.mdb database and syncs attendance records to cloud MySQL database
+- Implements scheduled synchronization at configurable times
+- Uses encrypted credentials for secure database access
+- Supports batch processing to handle large datasets efficiently
+
+### 2. `sync_to_cloud.py`
+- Legacy application that reads from HIP Premium Time's log files
+- Processes .txt files from the alog directory and uploads to cloud database
+- Runs continuously with scheduled upload times
+- Moves processed files to a 'processed' directory
+
+### 3. `device_server.py`
+- Python HTTP server acting as a micro-service bridge
 - Listens on port 9090 for data from HIP devices
 - Receives attendance logs via HTTP POST requests
 - Directly inserts data into the cloud MySQL database
 - Handles device handshake/config requests via HTTP GET
-- Includes error handling and connection management
 
-### 2. `device_snipper.py` (likely typo for "sniffer")
-- A debugging/sniffing tool that captures and displays raw data from devices
-- Used to verify device connectivity and understand data format
-- Does not upload data to cloud, just logs for inspection
-- Essential for troubleshooting device communication
+### 4. `encrypt_credentials.py`
+- Internal tool for encrypting database credentials
+- Uses Fernet symmetric encryption to protect sensitive database information
+- Generates encrypted_credentials.bin for secure distribution
+- Prevents plaintext credentials in distributed applications
 
-### 3. `sync_to_cloud.py`
-- A scheduled sync service that processes local log files
-- Monitors the HIP Premium Time software's log directory
-- Reads attendance data from text files and uploads to cloud database
-- Runs continuously with scheduled upload times (09:00, 12:00, 17:00, 22:00)
-- Includes file filtering to avoid re-uploading old data
+### 5. `access_sync_manager_pure.py` and related files
+- Advanced sync manager with multiple sync strategies
+- Supports both file-based and direct database sync methods
+- Implements hybrid approach combining multiple data sources
+- Provides robust error handling and retry mechanisms
 
-### 4. `test_cloud_db.py`
-- A simple connectivity test script
-- Verifies connection to the cloud MySQL database
-- Used for troubleshooting database access issues
+## Security Implementation
 
-## Dependencies
-- `mysql-connector-python` - for database connections
-- Standard Python libraries: `http.server`, `mysql.connector`, `os`, `glob`, `shutil`, `datetime`, etc.
+### Credential Protection
+- **Public Configuration** (`config.json`): Contains user-modifiable settings like sync times and file paths
+- **Encrypted Credentials** (`encrypted_credentials.bin`): Contains sensitive database credentials in encrypted format
+- **Encryption Method**: Uses Fernet symmetric encryption from the cryptography library
+- **Fixed Key**: A consistent encryption key is used across the application for secure credential handling
 
-## Configuration
-The system requires configuration of:
-- Cloud database credentials and host
-- Local log directory paths
-- Scheduled upload times
-- Device IP addresses and ports
+### Database Connection
+- **Library**: PyMySQL (PyInstaller-friendly replacement for mysql-connector-python)
+- **Features**: Supports all standard MySQL operations with secure authentication
+- **Compatibility**: Works seamlessly with PyInstaller compilation for distribution
+
+## Configuration Files
+
+### `config.json`
+Contains public configuration settings:
+- `ACCESS_DB_PATH`: Path to the HIP MS Access database file
+- `ACCESS_PASSWORD`: Password for the MS Access database
+- `UPLOAD_TIMES`: Array of times when sync should occur (HH:MM format)
+- `BATCH_SIZE`: Number of records to process in each batch
+- `LAST_SYNC_FILE`: File to store last sync position
+
+### `credentials.json`
+Temporary file for unencrypted database credentials (before encryption)
+- Contains database connection details (host, user, password, database, port)
+
+### `encrypted_credentials.bin`
+Encrypted file containing sensitive database credentials
+- Generated by encrypt_credentials.py
+- Required for database connections in production
+
+## Database Schema
+
+### `access_device_logs` table
+Created using `create_access_table.sql`, this table preserves all original MS Access fields:
+- `id`: Auto-increment primary key
+- `badge_number`: Employee ID from Badgenumber field
+- `check_time`: DateTime of check-in/out from checktime field
+- `check_type`: In/Out status from checktype field (I=In, O=Out)
+- `verify_code`: Verification method from verifycode field
+- `sensor_id`: Sensor identifier from sensorid field
+- `work_code`: Work code assignment from workcode field
+- `device_sn`: Device serial number from sn field
+- `raw_data`: Full raw record for reference
+- `server_time`: Timestamp when record was processed
 
 ## Deployment Options
-1. **Service Mode**: Deployed as Windows services using NSSM (Non-Sucking Service Manager)
-2. **Direct Execution**: Scripts can be run directly for testing/debugging
+
+### 1. Executable Distribution
+Applications can be compiled to standalone executables using PyInstaller:
+```cmd
+pyinstaller --onefile --console --name=hip_access_sync access_to_cloud.py
+```
+
+The compiled executables:
+- Are completely self-contained (no Python installation needed)
+- Include all required libraries and dependencies
+- Work with encrypted credentials system
+- Run continuously with scheduled sync times
+- Compatible with Windows Services (NSSM)
+
+### 2. Service Installation (NSSM)
+Use **NSSM (Non-Sucking Service Manager)** to run scripts as Windows Services:
+- Ensures automatic startup with Windows
+- Restarts if the service crashes
+- Runs independently of user login
+
+### 3. Enhanced Windows Service
+Modern approach with native Windows service and system tray controller:
+- No external dependencies like NSSM
+- Provides GUI management via system tray
+- Better integration with Windows services
 
 ## Key Features
-- Real-time data transfer from biometric devices
-- Scheduled batch processing of historical logs
-- Automatic file archiving after successful upload
-- Device handshake/handshake response handling
-- Error logging and connection resilience
-- Filtering of old data to prevent duplicate uploads
 
-## Usage Scenarios
-1. **Real-time Bridge**: Use `device_server.py` for immediate data transfer from devices
-2. **Batch Processing**: Use `sync_to_cloud.py` for scheduled uploads of existing logs
-3. **Debugging**: Use `device_snipper.py` to inspect raw device communications
-4. **Testing**: Use `test_cloud_db.py` to verify database connectivity
+### Multiple Integration Strategies
+1. **Direct MS Access Database Reading**: Eliminates dependency on file processing
+2. **File-Based Log Synchronization**: Legacy support for HIP Premium Time auto-download
+3. **Real-Time HTTP Bridging**: Direct device-to-cloud communication
+4. **Hybrid Approach**: Combines multiple strategies for redundancy
+
+### Robust Sync Mechanisms
+- Per-batch sync tracking to prevent data loss
+- Last sync position tracking with timestamps and sequence numbers
+- Configurable batch sizes for performance optimization
+- Scheduled synchronization at configurable times
+
+### Security & Reliability
+- Encrypted credential storage
+- Connection error handling and retries
+- Data validation and sanitization
+- Comprehensive logging for troubleshooting
+
+## Setup Process
+
+1. **Prerequisites**: Install Python 3.x and required packages (`pip install -r requirements.txt`)
+2. **Database Setup**: Create the required table using `create_access_table.sql`
+3. **Configuration**: Configure `config.json` with appropriate settings
+4. **Credentials**: Generate `encrypted_credentials.bin` using the encryption script
+5. **Deployment**: Choose deployment method (executable, NSSM service, or enhanced service)
+
+## Dependencies
+- `PyMySQL` - for MySQL database connections
+- `pyodbc` - for MS Access database connectivity
+- `cryptography` - for credential encryption
+- `access-parser` - for parsing MS Access database files
+- `pywin32` - for Windows service functionality
+
+## Development Conventions
+- Secure credential handling through encryption
+- Configurable scheduling for data synchronization
+- Comprehensive error handling and logging
+- Modular design allowing multiple integration approaches
+- Batch processing for efficient data handling
 
 ## Documentation
 Additional implementation details and setup instructions are available in the `/docs` directory:
-- `1-phase1-upload-log.md` - Batch processing implementation guide
-- `2-micro-server.md` - Real-time bridge implementation guide
+- `1-phase1-upload-log.md` - Direct MS Access database integration guide
+- `2-micro-server.md` - Real-time HTTP bridge implementation guide
+- `future_enhancements.md` - Planned features and improvements
+- `HIP_CMI_Protocol.md` - Protocol analysis for device communication

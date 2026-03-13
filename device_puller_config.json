@@ -1,15 +1,35 @@
 {
-  "DEVICES": [
-    {
-      "name": "HIP CMI F68S Main",
-      "ip": "192.168.100.166",
-      "port": 5005,
-      "password": 0,
-      "enabled": true
-    }
-  ],
-  "SYNC_TO_CLOUD": true,
-  "PULL_INTERVAL_MINUTES": 15,
-  "CONNECTION_TIMEOUT": 10,
-  "DEBUG_MODE": true
+    "UPLOAD_TIMES": [
+        "09:00",
+        "12:00",
+        "17:00",
+        "22:00"
+    ],
+    "SYNC_TO_CLOUD": true,
+    "PULL_INTERVAL_MINUTES": 15,
+    "CONNECTION_TIMEOUT": 10,
+    "DEBUG_MODE": true,
+    "DEVICES": [
+        {
+            "name": "HIP CMI F68S Main",
+            "ip": "192.168.100.166",
+            "port": 5005,
+            "password": 0,
+            "enabled": true
+        },
+        {
+            "name": "HIP CMI F68S Branch 1",
+            "ip": "192.168.100.167",
+            "port": 5005,
+            "password": 0,
+            "enabled": true
+        },
+        {
+            "name": "HIP CMI F68S Branch 2",
+            "ip": "192.168.100.168",
+            "port": 5005,
+            "password": 0,
+            "enabled": true
+        }
+    ]
 }

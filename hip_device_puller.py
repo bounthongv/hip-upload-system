@@ -349,16 +349,40 @@ class HIPDevice:
                 if uid == 0 or uid > 100000000:
                     continue
                     
-                # Apply Time Correction
-                corrected_ts = ts_val + TIME_OFFSET
-                    
-                # Timestamp conversion
+                # Log raw timestamp for the first record to help debugging
+                if i == 0:
+                    log_msg(f"DEBUG: First record raw timestamp: {ts_val}")
+
+                # Smart Timestamp Logic
+                check_time = None
+                used_method = "unknown"
+
+                # 1. Try Raw Timestamp (Is it already correct?)
                 try:
-                    # Basic Unix Timestamp
-                    check_time = datetime.fromtimestamp(corrected_ts).strftime("%Y-%m-%d %H:%M:%S")
+                    dt_raw = datetime.fromtimestamp(ts_val)
+                    # If year is recent (e.g. > 2024), assume device time is correct
+                    if dt_raw.year >= 2024:
+                        check_time = dt_raw.strftime("%Y-%m-%d %H:%M:%S")
+                        used_method = "raw"
                 except:
-                    # Fallback if correction fails (e.g. invalid TS)
+                    pass
+
+                # 2. Try Offset (Is it the stuck-in-2012 issue?)
+                if not check_time:
+                    try:
+                        corrected_ts = ts_val + TIME_OFFSET
+                        dt_corr = datetime.fromtimestamp(corrected_ts)
+                        # If corrected time is recent
+                        if dt_corr.year >= 2024:
+                            check_time = dt_corr.strftime("%Y-%m-%d %H:%M:%S")
+                            used_method = "corrected"
+                    except:
+                        pass
+
+                # 3. Fallback to current time if all else fails
+                if not check_time:
                     check_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    used_method = "fallback"
                 
                 # Verify Mode Mapping
                 # 0x40 (64) -> 1 (Finger/Pwd)

@@ -1,4 +1,10 @@
 {
-  "LOG_DIR": "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\alog",
-  "UPLOAD_TIMES": ["09:00", "13:30", "20:14", "22:00"]
+    "LOG_DIR": "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\alog",
+    "UPLOAD_TIMES": [
+        "11:35",
+        "13:30",
+        "20:27",
+        "22:00"
+    ],
+    "ACCESS_DB_PATH": "D:\\\\Program Files (x86)\\\\HIPPremiumTime-2.0.4\\\\db\\\\Pm2014.mdb"
 }

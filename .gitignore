@@ -1,59 +1,27 @@
-# Virtual environments
-venv/
-env/
-ENV/
-Include/
-Lib/
-Scripts/
-dir/
+# Sensitive files that should not be uploaded to GitHub
+encrypted_credentials.bin
+credentials.json
+temp_encryption_key.txt
 
-# Python cache
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Generated files
-*.spec
-*.pyc
-*.pyo
-*.pyd
-
-# Temp files
-*.tmp
-*.temp
+# Log files
 *.log
+logs/
+*.txt  # Excluding all text files except specific ones like config files
 
-# Sync tracking files
-last_sync*.txt
-
-# PyInstaller
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.spec
-dist/
-build/
-*.exe
-*.dll
-*.zip
+.Python
+env/
+venv/
+ENV/
+.venv/
+.env
+.pytest_cache/
+.coverage
+htmlcov/
 
 # OS generated files
 .DS_Store
@@ -63,54 +31,124 @@ build/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Logs
-*.log
-service.log
-error.log
-
-# Environment specific files
-*.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Windows
-Thumbs.db
 desktop.ini
-$RECYCLE.BIN/
-*.lnk
 
-# IDE files
+# IDE specific files
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# OS generated files
+# Build outputs
+build/
+dist/
+*.egg-info/
+*.exe
+*.msi
+
+# Temporary files
+*.tmp
+*.temp
 .DS_Store
 .DS_Store?
 ._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
-# Logs
-*.log
-service.log
-error.log
+# Specific to HIP upload system
+hip_attendance_*.txt
+hip_attendance_raw_*.bin
+hip_data_*.bin
+device_pull_attendance.log
+last_sync_*.txt
 
-# Environment specific files
-*.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Local analysis and development files
+*.db
+*.csv
+*.json
+*.bin
+*.hex
+raw_data.hex
+corrected_parsed_records.txt
+data_comparison.txt
+timestamp_pattern_analysis.csv
 
-# Windows
-Thumbs.db
-desktop.ini
-$RECYCLE.BIN/
-*.lnk
+# Parser development files
+hip_*_parser.py
+hip_*_analysis*.py
+hip_*_scanner.py
+hip_*_inspector.py
+hip_*_validator.py
+hip_*_hunter.py
+hip_*_dumper.py
+hip_*_bullet.py
+hip_*_solution*.py
+hip_*_production*.py
+hip_*_final*.py
+hip_*_perfect*.py
+hip_*_correct*.py
+hip_*_direct*.py
+hip_*_universal*.py
+hip_*_adaptive*.py
+hip_*_rosetta*.py
+hip_*_robust*.py
+hip_*_platinium*.py
+hip_*_silver*.py
+hip_*_smart*.py
+hip_*_simple*.py
+hip_*_working*.py
+hip_*_ultimate*.py
+hip_*_reverse*.py
+hip_*_pattern*.py
+hip_*_find*.py
+hip_*_deep*.py
+hip_*_diagnostic*.py
+hip_*_time*.py
+final_parser.py
+fix_timestamp_parsing.py
+test_*.py
+try_common_format.py
+verify_device_data_format.py
+
+# Spec files (except main ones)
+*_pure.spec
+*_fixed.spec
+*_final.spec
+*_tray.spec
+*_sync.spec
+access_*.spec
+hip_access_sync.spec
+hip_sync_pure.spec
+hip_access_tray_*.spec
+hip_*.spec
+
+# Batch scripts
+run_console_mode.bat
+
+# Qwen Code configuration
+.qwen/
+
+# External software directories
+HIPPremiumTime*/
+docs/hippmsoftware/
+docs/test.md
+
+# Analysis output files
+*_analysis*.csv
+*_analysis*.json
+*_results*.json
+*_decoded*.csv
+*_full_*.json
+*_robust_*.json
+
+# Additional analysis scripts
+analyze_*.py
+hip_*_improved.py
+hip_*_ds.py
+hip_*_v*.py
+hip_*_inspector.py
+hip_*_analyzer.py
+hip_*_check.py
+hip_*_engineer.py
+hip_*_validator.py
+hip_validator.py
+*.sql
